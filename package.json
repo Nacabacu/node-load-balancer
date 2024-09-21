@@ -1,0 +1,26 @@
+{
+  "name": "load-balancer",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "concurrently \"npm run start:*\"",
+    "start:serviceStarter": "ts-node ./src/serviceStarter",
+    "start:app": "ts-node ./src/app"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "express": "^4.21.0",
+    "http-proxy": "^1.18.1"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/http-proxy": "^1.17.15",
+    "@types/node": "^22.5.5",
+    "@types/node-fetch": "^2.6.11",
+    "concurrently": "^9.0.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.6.2"
+  }
+}
