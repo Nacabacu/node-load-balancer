@@ -1,52 +1,51 @@
 import express, { Request, Response } from 'express';
 import httpProxy from 'http-proxy';
-import configJSON from '../config.json';
-import { Config, ServiceConfig } from './types';
+import { Service } from './types';
+import { roundRobin } from './algorithm/roundRobin';
+import { leastConnection } from './algorithm/leastConnection';
+import { leastTime } from './algorithm/leastTime';
+import { config } from './config';
 
-const config = configJSON as Config;
-let healthyServiceList = [...config.serviceList];
-let unHealthyServiceList: ServiceConfig[] = [];
+export let healthyServiceList = [...config.serviceList.map<Service>(service => {
+  return {
+    url: `http://${service.host}:${service.port}`,
+    connection: 0,
+    time: 0
+  };
+})];
+export let unhealthyServiceList: Service[] = [];
+
+export const proxy = httpProxy.createProxyServer();
 const app = express();
 const port = 3000;
 
-const proxy = httpProxy.createProxyServer();
-
-let currentIndex = -1;
-
 app.post('/api', (req: Request, res: Response) => {
-  forwardRequest(req, res);
+  switch (config.algorithm) {
+    case 'RoundRobin':
+      roundRobin(req, res);
+      break;
+    case 'LeastConnection':
+      leastConnection(req, res);
+      break;
+    case 'LeastTime':
+      leastTime(req, res);
+      break;
+    default:
+      res.status(500).send('algorithm not supported');
+  }
 });
 
-const forwardRequest = (req: Request, res: Response) => {
-  if (!healthyServiceList) {
-    res
-    .status(500)
-    .json({ message: 'There is no healthy server' });
-  }
-
-  currentIndex = (currentIndex + 1) % healthyServiceList.length;
-  const currentService = healthyServiceList[currentIndex];
-  const targetUrl = `http://${currentService.host}:${currentService.port}`;
-
-  proxy.web(req, res, { target: targetUrl }, (err) => {
-    unHealthyServiceList.push(currentService);
-    healthyServiceList = healthyServiceList.filter(service => service.serviceName !== currentService.serviceName);
-    forwardRequest(req, res)
-  });
-}
-
 const checkServiceHealth = async () => {
-  unHealthyServiceList.forEach(async (serverConfig) => {
-    const { host, port, serviceName } = serverConfig;
+  unhealthyServiceList.forEach(async (service) => {
     try {
-      const result = await fetch(`http://${host}:${port}/health`);
+      const result = await fetch(`${service.url}/health`);
       if (result.ok) {
-        console.log(`Service ${serviceName} is up`);
-        healthyServiceList.push(serverConfig);
-        unHealthyServiceList = unHealthyServiceList.filter(service => service.serviceName !== serverConfig.serviceName);
+        console.log(`Service at url ${service.url} is up`);
+        healthyServiceList.push(service);
+        unhealthyServiceList = unhealthyServiceList.filter(s => s.url !== service.url);
       }
     } catch (err) {
-      console.error(`Service ${serviceName} is still down`);
+      console.error(`Service at url ${service.url} is still down`);
     }
   });
 }
@@ -56,3 +55,7 @@ setInterval(checkServiceHealth, 10000);
 app.listen(port, () => {
   console.log(`Application running on port ${port}`);
 });
+
+export const setHealthyServiceList = (serviceList: Service[]) => {
+  healthyServiceList = serviceList;
+}

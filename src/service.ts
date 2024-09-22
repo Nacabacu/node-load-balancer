@@ -2,7 +2,7 @@ import express, { Request, Response } from 'express';
 import { ServiceConfig } from './types';
 
 const app = express();
-const { port, serviceName, killAfterMs, upAfterMs } = JSON.parse(process.env.SERVICE_CONFIG || '') as ServiceConfig;
+const { port, serviceName, killAtMs: killAfterMs, upAtMs: upAfterMs, delayMs } = JSON.parse(process.env.SERVICE_CONFIG || '') as ServiceConfig;
 
 app.use(express.json());
 
@@ -15,7 +15,17 @@ app.post('/api', (req: Request, res: Response) => {
 
   console.log(`${serviceName} got request at port ${port}`);
 
-  res.status(200).json(requestBody);
+  const response = () => {
+    res.status(200).json(requestBody);
+  };
+
+  if (delayMs) {
+    setTimeout(() => {
+      response();
+    }, delayMs)
+  } else {
+    response();
+  }
 });
 
 const server = app.listen(port, () => {
