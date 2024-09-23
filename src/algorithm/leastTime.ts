@@ -9,7 +9,6 @@ export const leastTime = (req: Request, res: Response) => {
   }
 
   const service = healthyServiceList.sort((a, b) => a.time - b.time)[0];
-  console.log(healthyServiceList)
   const startTime = performance.now();
 
   proxy.web(req, res, { target: service.url }, (err) => {

@@ -9,6 +9,7 @@ export interface ServiceConfig {
   serviceName: string;
   host: string;
   port: number;
+  color: string;
   killAtMs?: number;
   upAtMs?: number;
   delayMs?: number;

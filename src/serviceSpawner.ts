@@ -1,7 +1,8 @@
 import { fork } from 'child_process';
 import path from 'path';
 import { config } from './config';
-const serviceScriptPath = path.join(__dirname, 'service.ts');
+import { fileURLToPath } from 'url';
+const serviceScriptPath = path.join(path.dirname(fileURLToPath(import.meta.url)), 'service.ts');
 
 config.serviceList.forEach((serviceConfig) => {
   const child = fork(serviceScriptPath, [], {
